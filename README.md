@@ -38,12 +38,14 @@ This PUT request is made using a `TCPClient` by connecting to the IP address on 
 
 So the overall HTTP request should look something like this:
 
-`PUT http://192.168.1.23/api/0123456789abcdefghijklmnopqrstuvwxyzABCD/lights/3/state HTTP/1.0
+```
+PUT http://192.168.1.23/api/0123456789abcdefghijklmnopqrstuvwxyzABCD/lights/3/state HTTP/1.0
 Host: 198.168.1.23
 User-Agent: Particle-Photon
 Content-Type: application.json
 Content-Length: 38
 
-{"hue": 65535, "sat": 255, "bri": 255}`
+{"hue": 65535, "sat": 255, "bri": 255}
+```
 
 To show that everything is working, the onboard LED connected to pin D7 will flash twice once the initial connection is made and will flash every time a HTTP PUT request is made.
