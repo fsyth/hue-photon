@@ -19,7 +19,7 @@ The collected values are bundled together into a JSON formatted string. Somethin
 This data then needs to be sent to each of the lights to be controlled using an HTTP PUT request.
 
 For this to work, the program needs to know:
-  - The internal IP address of the Hue Bridge. This can be obtained using [Hue's UPnP server](https://www.meethue.com/api/nupnp)
+  - The internal IP address of the Hue Bridge. This can be obtained using [Hue's UPnP server].(https://www.meethue.com/api/nupnp)
     - `byte ip[] = { 192, 168, 1, 23 };`
   - The developer ID to gain access to the bridge. [Follow this guide](https://www.developers.meethue.com/documentation/getting-started) to obtain a developer ID.
     - `String id = "0123456789abcdefghijklmnopqrstuvwxyzABCD";`
@@ -43,7 +43,7 @@ So the overall HTTP request should look something like this:
 PUT /api/0123456789abcdefghijklmnopqrstuvwxyzABCD/lights/3/state HTTP/1.0
 Host: 198.168.1.23
 User-Agent: Particle-Photon
-Content-Type: application.json
+Content-Type: application/json
 Content-Length: 38
 
 {"hue": 65535, "sat": 255, "bri": 255}
