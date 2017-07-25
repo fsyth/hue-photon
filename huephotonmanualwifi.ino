@@ -12,11 +12,14 @@ const int briPin = A2;
 const int ledPin = D7;
 
 // If byte values change by more than the threshold, the lights will be updated
-const int threshold = 2;
+const int threshold = 8;
 
 // Add a delay of a number of milliseconds into the main loop to avoid
 // sending too many requests to the Hue Bridge and to save power
 const int loopInterval = 500;
+
+// The wifi module should be turned off after a number of loops to save power
+const int offAfter = 60e3 / loopInterval;
 
 
 // Declare values for the three colour parameters, and on/off
@@ -29,6 +32,12 @@ String json;
 
 // Create a TCPClient that will send on the JSON data
 TCPClient client;
+
+// Keep count of the number of loops that have been processed
+// If a number of loops pass without change, the wifi module can be turned off
+// to conserve battery life
+int counter = 0;
+bool wifiEnabled = true;
 
 
 // Sets up pins, Particle variables, and tests connection to Hue Bridge.
@@ -52,8 +61,7 @@ void setup() {
     // Setup the server, and wait until it's ready
     if (client.connect(ip, 80)) {
         // Flash the onboard LED to show connected
-        ledFlash(200);
-        ledFlash(200);
+        ledFlash(200, 2);
         client.stop();
     }
 }
@@ -65,9 +73,13 @@ void setup() {
 //   - a long time with no changes -> WiFi off
 void loop() {
     // Read the values of the three potentiometers into temporary variables to check for changes.
-    int hue_ = analogRead(huePin);
-    int sat_ = analogRead(satPin);
-    int bri_ = analogRead(briPin);
+    // The analogRead function gives 12-bit resolution.
+    // The dimmers rotate the wrong way, so subtract from the max 12-bit value to reverse.
+    // The Hue Bridge expects 16-, 8- and 8-bit resolution for the three values so bit-shift
+    // as required.
+    int hue_ = (0xFFF - analogRead(huePin)) << 4;
+    int sat_ = (0xFFF - analogRead(satPin)) >> 4;
+    int bri_ = (0xFFF - analogRead(briPin)) >> 4;
     bool on_ = bri_ > 0;
 
     // Check if the lights are changed between on and off
@@ -86,27 +98,28 @@ void loop() {
     }
 
     // Compare the new values to the old values
-    if (on_ &&
-        abs(bri_ - bri) > threshold ||
-        abs(sat_ - sat) > threshold ||
-        abs(hue_ - hue) > threshold) {
-
+    if (on_ && changed(hue_, sat_, bri_)) {
         // A change has occurred, so update values
         hue = hue_;
         sat = sat_;
         bri = bri_;
 
         // Build a JSON string with the values to be sent off
-        // The analogRead function gives 12-bit resolution.
-        // The dimmers rotate the wrong way, so subtract from the max 12-bit value to reverse.
-        // The Hue Bridge expects 16-, 8- and 8-bit resolution for the three values so bit-shift
-        // as required.
-        json = "{\"hue\":" + String((0xFFF - hue_) << 4, DEC) +
-               ",\"sat\":" + String((0xFFF - sat_) >> 4, DEC) +
-               ",\"bri\":" + String((0xFFF - bri_) >> 4, DEC) + "}";
+        json = "{\"hue\":" + String(hue, DEC) +
+               ",\"sat\":" + String(sat, DEC) +
+               ",\"bri\":" + String(bri, DEC) + "}";
 
         // Send the data to the Hue Bridge
         sendJSON();
+    }
+
+    // Turn off the wifi module if nothing has changed in a while
+    if (wifiEnabled && ++counter > offAfter) {
+        wifiEnabled = false;
+        WiFi.off();
+
+        // Flash the LED to show entering power-save mode
+        ledFlash(100, 3);
     }
 
     // No need to run this as fast as possible. To save power, build in a delay.
@@ -114,10 +127,31 @@ void loop() {
 }
 
 
+// Compares the newly measured values of HSB from the potentiometers against the
+// current state and returns true if the values have significantly changed.
+bool changed(const int h_, const int s_, const int b_) {
+    return abs(b_ - bri) > threshold ||
+           abs(s_ - sat) > threshold ||
+           abs(h_ - hue) > (threshold << 8);
+}
+
+
 // Sends the string data stored in the json variable to the Hue Bridge.
 // It also re-enables the wifi module if it was previously disabled and
 // resets the counter for loops without changes occurring.
 void sendJSON() {
+    // Turn the wifi module on if it was previously disabled
+    if (!wifiEnabled) {
+        wifiEnabled = true;
+        WiFi.on();
+
+        // Wait until the wifi module is ready before proceeding.
+        while (!WiFi.ready()) Particle.process();
+
+        // Reset counter
+        counter = 0;
+    }
+
     digitalWrite(ledPin, HIGH);
     // Send a put request to each light
     for (int i = 0; i < lightCount; i++) {
@@ -126,10 +160,23 @@ void sendJSON() {
             client.print(path);
             client.print(lights[i]);
             client.println("/state HTTP/1.0");
+            client.print("Host: ");
+            client.print(ip[0]);
+            client.print(".");
+            client.print(ip[1]);
+            client.print(".");
+            client.print(ip[2]);
+            client.print(".");
+            client.println(ip[3]);
+            //client.println("Connection: keep-alive");
+            // ^^^ not needed if reconnecting each time
+            client.println("User-Agent: Particle-Photon");
+            client.println("Content-Type: application/json");
             client.print("Content-Length: ");
             client.println(json.length());
             client.println();
             client.println(json);
+            client.println();
         }
     }
     digitalWrite(ledPin, LOW);
@@ -137,10 +184,20 @@ void sendJSON() {
 
 
 // Turns the LED on for time t, and then off for time t.
+// Units of milliseconds.
 void ledFlash(int t) {
-    // Turn the LED on for time t before turning off for time t.
-    digitalWrite(ledPin, HIGH);
-    delay(t);
-    digitalWrite(ledPin, LOW);
-    delay(t);
+    ledFlash(t, 1);
+}
+
+// Turns the LED on for time t, and then off for time t.
+// This is repeated c times.
+void ledFlash(int t, int c) {
+    // Flash c times.
+    for (int i = 0; i < c; i++) {
+        // Turn the LED on for time t before turning off for time t.
+        digitalWrite(ledPin, HIGH);
+        delay(t);
+        digitalWrite(ledPin, LOW);
+        delay(t);
+    }
 }
