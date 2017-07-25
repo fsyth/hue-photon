@@ -11,8 +11,9 @@ const int satPin = A1;
 const int briPin = A2;
 const int ledPin = D7;
 
-// If byte values change by more than the threshold, the lights will be updated
-const int threshold = 2;
+// If 12-bit analog reads values change by more than the threshold,
+// the lights will be updated
+const int threshold = 1 << 4;
 
 // Add a delay of a number of milliseconds into the main loop to avoid
 // sending too many requests to the Hue Bridge and to save power
@@ -68,7 +69,8 @@ void loop() {
     int hue_ = analogRead(huePin);
     int sat_ = analogRead(satPin);
     int bri_ = analogRead(briPin);
-    bool on_ = bri_ > 0;
+    // Turn off at max voltage from the brightness potentiometer
+    bool on_ = 0xFFF - bri_ > threshold;
 
     // Check if the lights are changed between on and off
     if (on_ != on) {
