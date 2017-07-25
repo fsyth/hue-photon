@@ -14,6 +14,14 @@ const int ledPin = D7;
 // If byte values change by more than the threshold, the lights will be updated
 const int threshold = 8;
 
+// Add a delay of a number of milliseconds into the main loop to avoid
+// sending too many requests to the Hue Bridge and to save power
+const int loopInterval = 500;
+
+// The wifi module should be turned off after a number of loops to save power
+const int offAfter = 60e3 / loopInterval;
+
+
 // Declare values for the three colour parameters, and on/off
 // hue: 0-0xFFFF, sat: 0-0xFF, bri: 0-0xFF
 int hue, sat, bri = 0;
@@ -22,10 +30,18 @@ bool on = false;
 // Declare a JSON formatted string to be sent to the Hue Bridge
 String json;
 
-// Create a TCPClient that will send on the data
+// Create a TCPClient that will send on the JSON data
 TCPClient client;
 
+// Keep count of the number of loops that have been processed
+// If a number of loops pass without change, the wifi module can be turned off
+// to conserve battery life
+int counter = 0;
+bool wifiEnabled = true;
 
+
+// Sets up pins, Particle variables, and tests connection to Hue Bridge.
+// The LED will flash twice to show that the connection was successful.
 void setup() {
     // Set potentiometer pins to be inputs
     pinMode(huePin, INPUT);
@@ -45,12 +61,16 @@ void setup() {
     // Setup the server, and wait until it's ready
     if (client.connect(ip, 80)) {
         // Flash the onboard LED to show connected
-        ledFlash(200);
-        ledFlash(200);
+        ledFlash(200, 2);
         client.stop();
     }
 }
 
+
+// Reads analogue values for each of the potentiometers and deals with any changes, including:
+//   - the brightness potentiometer changing between on or off -> PUT on/off
+//   - changes to hue, saturation or brightness -> PUT hue, sat, bri
+//   - a long time with no changes -> WiFi off
 void loop() {
     // Read the values of the three potentiometers into temporary variables to check for changes.
     // The analogRead function gives 12-bit resolution.
@@ -93,17 +113,45 @@ void loop() {
         sendJSON();
     }
 
+    // Turn off the wifi module if nothing has changed in a while
+    if (wifiEnabled && ++counter > offAfter) {
+        wifiEnabled = false;
+        WiFi.off();
+
+        // Flash the LED to show entering power-save mode
+        ledFlash(100, 3);
+    }
+
     // No need to run this as fast as possible. To save power, build in a delay.
-    delay(800);
+    delay(500);
 }
 
-bool changed(int h_, int s_, int b_) {
+
+// Compares the newly measured values of HSB from the potentiometers against the
+// current state and returns true if the values have significantly changed.
+bool changed(const int h_, const int s_, const int b_) {
     return abs(b_ - bri) > threshold ||
            abs(s_ - sat) > threshold ||
            abs(h_ - hue) > (threshold << 8);
 }
 
+
+// Sends the string data stored in the json variable to the Hue Bridge.
+// It also re-enables the wifi module if it was previously disabled and
+// resets the counter for loops without changes occurring.
 void sendJSON() {
+    // Turn the wifi module on if it was previously disabled
+    if (!wifiEnabled) {
+        wifiEnabled = true;
+        WiFi.on();
+
+        // Wait until the wifi module is ready before proceeding.
+        while (!WiFi.ready()) Particle.process();
+
+        // Reset counter
+        counter = 0;
+    }
+
     digitalWrite(ledPin, HIGH);
     // Send a put request to each light
     for (int i = 0; i < lightCount; i++) {
@@ -120,7 +168,8 @@ void sendJSON() {
             client.print(ip[2]);
             client.print(".");
             client.println(ip[3]);
-            //client.println("Connection: keep-alive"); // not needed if reconnecting each time
+            //client.println("Connection: keep-alive");
+            // ^^^ not needed if reconnecting each time
             client.println("User-Agent: Particle-Photon");
             client.println("Content-Type: application/json");
             client.print("Content-Length: ");
@@ -133,10 +182,22 @@ void sendJSON() {
     digitalWrite(ledPin, LOW);
 }
 
+
+// Turns the LED on for time t, and then off for time t.
+// Units of milliseconds.
 void ledFlash(int t) {
-    // Turn the LED on for time t before turning off
-    digitalWrite(ledPin, HIGH);
-    delay(t);
-    digitalWrite(ledPin, LOW);
-    delay(t);
+    ledFlash(t, 1);
+}
+
+// Turns the LED on for time t, and then off for time t.
+// This is repeated c times.
+void ledFlash(int t, int c) {
+    // Flash c times.
+    for (int i = 0; i < c; i++) {
+        // Turn the LED on for time t before turning off for time t.
+        digitalWrite(ledPin, HIGH);
+        delay(t);
+        digitalWrite(ledPin, LOW);
+        delay(t);
+    }
 }
