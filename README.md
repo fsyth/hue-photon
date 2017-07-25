@@ -50,3 +50,7 @@ Content-Length: 38
 ```
 
 To show that everything is working, the onboard LED connected to pin D7 will flash twice once the initial connection is made and will flash every time an HTTP PUT request is made.
+
+Since the Photon can be powered over any 5V supply, it is useful to maximise its battery life by turning off the WiFi module when it is not in use. To do this, a counter is incremented every loop of the program and reset when an update is sent to the lights. If this counter exceeds some limit, the WiFi can be turned off.
+
+Note that the WiFi module must be enabled to flash firmware changes to the Photon. Therefore it is necessary to adjust the potentiometers to wake up the WiFi module just before flashing.
