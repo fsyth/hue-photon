@@ -78,7 +78,7 @@ void loop() {
     }
 
     // Compare the new values to the old values
-    if (on_ && changed(hue_, bri_, sat_)) {
+    if (on_ && changed(hue_, sat_, bri_)) {
         // A change has occurred, so update values
         hue = hue_;
         sat = sat_;
