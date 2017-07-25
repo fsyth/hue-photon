@@ -94,7 +94,7 @@ void loop() {
         sendJSON();
 
         // Wait for the lights to come on before continuing
-        delay(800);
+        delay(loopInterval);
     }
 
     // Compare the new values to the old values
@@ -123,7 +123,7 @@ void loop() {
     }
 
     // No need to run this as fast as possible. To save power, build in a delay.
-    delay(500);
+    delay(loopInterval);
 }
 
 
