@@ -2,7 +2,9 @@
 const byte ip[] = { 192, 168, 1, 118 };
 const String id = "PPie0zfjcGDOrUinw6RcGXAo0q3bhHyyeioxVPzD";
 const int lights[] = { 1, 2, 3 };
-const int lightCount = 3;
+
+// These variables are derived from the Hue parameters specified above
+const int lightCount = sizeof(lights) / sizeof(lights[0]);
 const String path = "/api/" + id + "/lights/";
 
 // Define analog pins for each of the potentiometers, plus indicator LED

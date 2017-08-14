@@ -19,13 +19,12 @@ The collected values are bundled together into a JSON formatted string. Somethin
 This data then needs to be sent to each of the lights to be controlled using an HTTP PUT request.
 
 For this to work, the program needs to know:
-  - The internal IP address of the Hue Bridge. This can be obtained using [Hue's UPnP server].(https://www.meethue.com/api/nupnp)
+  - The internal IP address of the Hue Bridge. This can be obtained using [Hue's UPnP server](https://www.meethue.com/api/nupnp).
     - `byte ip[] = { 192, 168, 1, 23 };`
   - The developer ID to gain access to the bridge. [Follow this guide](https://www.developers.meethue.com/documentation/getting-started) to obtain a developer ID.
     - `String id = "0123456789abcdefghijklmnopqrstuvwxyzABCD";`
-  - The numbers of the lights you want to control, and the length of that list. Each light needs to be controlled individually as rooms do not accept PUT requests.
+  - The numbers of the lights you want to control. Each light needs to be controlled individually as rooms do not accept PUT requests.
     - `int lights[] = { 1, 2, 3 };`
-    - `int lightCount = 3;`
 
 Assemble these component parts to form the URL to control each light individually.
 
@@ -49,7 +48,18 @@ Content-Length: 38
 {"hue": 65535, "sat": 255, "bri": 255}
 ```
 
-To show that everything is working, the onboard LED connected to pin D7 will flash twice once the initial connection is made and will flash every time an HTTP PUT request is made.
+In practice, not all of this information is required for the system to work, so some lines can be omitted. The following is the bare minimum for the PUT request:
+
+```
+PUT /api/0123456789abcdefghijklmnopqrstuvwxyzABCD/lights/3/state HTTP/1.0
+Content-Length: 38
+
+{"hue": 65535, "sat": 255, "bri": 255}
+```
+
+Note that an empty line is required to separate the request header from the request body, and the Content-Length attribute is required to denote the end of the body.
+
+To show that everything is working, the onboard LED connected to pin D7 will flash twice once the initial connection is made and will flash every time an HTTP PUT request is made. Delays are built in to reduce the amount of work for the Photon and to prevent spamming to the Hue Bridge.
 
 #### Manual WiFi Control
 
@@ -58,3 +68,14 @@ Since the Photon can be powered over any 5V supply, it is useful to maximise its
 It takes a few seconds for the WiFi module to restart when using this mode, which may not be desirable. Therefore code for this has been moved to a separate file `huephotonmanualwifi.ino`.
 
 Note that the WiFi module must be enabled to flash firmware changes to the Photon. Therefore it is necessary to adjust the potentiometers to wake up the WiFi module just before flashing.
+
+
+#### Compact Wiring Layout
+
+It is possible to rewire the circuit above so that only the analog side of the Particle Photon board is used.
+
+![Compact Wiring Diagram](wiringdiagramcompact.png)
+
+This is useful when putting all of the electronics in a compact case, as then one side of the board can be pushed up against the edge of the case.
+
+![Assembled Case](dimmers.jpg)

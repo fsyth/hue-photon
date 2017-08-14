@@ -7,15 +7,16 @@ const int lights[] = { 1, 2, 3 };
 const int lightCount = sizeof(lights) / sizeof(lights[0]);
 const String path = "/api/" + id + "/lights/";
 
-// Define analog pins for each of the potentiometers, plus indicator LED
-const int huePin = A0;
-const int satPin = A1;
-const int briPin = A2;
+// Define analog pins for power, each of the potentiometers, plus indicator LED
+const int powPin = A0;
+const int huePin = A1;
+const int satPin = A2;
+const int briPin = A3;
 const int ledPin = D7;
 
 // If 12-bit analog reads values change by more than the threshold,
 // the lights will be updated
-const int threshold = 1 << 4;
+const int threshold = 1 << 6;
 
 // Add a delay of a number of milliseconds into the main loop to avoid
 // sending too many requests to the Hue Bridge and to save power
@@ -45,6 +46,10 @@ void setup() {
     // Set LED to be an output
     pinMode(ledPin, OUTPUT);
 
+    // Set Power to be max voltage output
+    pinMode(powPin, OUTPUT);
+    digitalWrite(powPin, HIGH);
+
     // Make hue, sat, bri into Particle variables so they are accessible in the cloud
     Particle.variable("hue",  &hue,  INT);
     Particle.variable("sat",  &sat,  INT);
@@ -72,7 +77,7 @@ void loop() {
     int sat_ = analogRead(satPin);
     int bri_ = analogRead(briPin);
     // Turn off at max voltage from the brightness potentiometer
-    bool on_ = 0xFFF - bri_ > threshold;
+    bool on_ = bri_ > threshold;
 
     // Check if the lights are changed between on and off
     if (on_ != on) {
@@ -105,9 +110,9 @@ void loop() {
         // The dimmers rotate the wrong way, so subtract from the max 12-bit value to reverse.
         // The Hue Bridge expects 16-, 8- and 8-bit resolution for the three values so bit-shift
         // as required.
-        json = "{\"hue\":" + String((0xFFF - hue_) << 4, DEC) +
-               ",\"sat\":" + String((0xFFF - sat_) >> 4, DEC) +
-               ",\"bri\":" + String((0xFFF - bri_) >> 4, DEC) + "}";
+        json = "{\"hue\":" + String(hue_ << 4, DEC) +
+               ",\"sat\":" + String(sat_ >> 4, DEC) +
+               ",\"bri\":" + String(bri_ >> 4, DEC) + "}";
 
         // Send the data to the Hue Bridge
         sendJSON();
