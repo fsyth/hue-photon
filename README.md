@@ -72,7 +72,7 @@ Note that the WiFi module must be enabled to flash firmware changes to the Photo
 
 #### Compact Wiring Layout
 
-It is possible to rewire the circuit above so that only the analog side of the Particle Photon board is used.
+It is possible to rewire the circuit above so that only the analog side of the Particle Photon board is used. In this case, power is supplied by setting one of the analog pins to output maximum voltage using `digitalWrite(A0, HIGH);`. The other analog pins are used for input, as before.
 
 ![Compact Wiring Diagram](wiringdiagramcompact.png)
 
