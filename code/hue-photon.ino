@@ -5,6 +5,7 @@
 #define COMPACT true
 #define MANUAL_WIFI false
 #define REVERSE_VOLTAGES false
+#define CLOUD_ENABLED false
 
 // Hue Bridge API parameters. These can be obtained manually. See README
 // for a guide on how to obtain these values
@@ -87,12 +88,14 @@ void setup() {
     // Set LED to be an output
     pinMode(ledPin, OUTPUT);
 
+    #if CLOUD_ENABLED
     // Make hue, sat, bri into Particle variables so they are accessible in the cloud
     Particle.variable("hue",  &hue,  INT);
     Particle.variable("sat",  &sat,  INT);
     Particle.variable("bri",  &bri,  INT);
     Particle.variable("on",   &on,   BOOLEAN);
     Particle.variable("json", &json, STRING);
+    #endif
 
     // Setup the server, and wait until it's ready
     if (client.connect(ip, 80)) {
