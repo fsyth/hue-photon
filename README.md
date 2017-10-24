@@ -98,3 +98,11 @@ There is a compile directive near the top of the file to toggle between this lay
 Additionally, there is a separate file for this skew, `hue-photon-compact.ino`
 
 ![Assembled Case](dimmers.jpg)
+
+#### Debugging with Particle Cloud
+
+If you are making adustments to the program for your own projects, it can be useful to enable the cloud debugging directive.
+
+`#define CLOUD_ENABLED true`
+
+This means that certiain variables will be pollable for the Particle.io app, allowing you to check the readings you are getting for hue, saturation, brightness and on, and to check the formatting of the JSON string that was last sent to the Hue Bridge.

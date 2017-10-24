@@ -1,7 +1,8 @@
 // --- USER VARIABLES --- //
 
 // Optionally change these lines to enable compact wiring layout,
-// manual wifi mode, or reversed potentiometer voltages.
+// manual wifi mode, reversed potentiometer voltages, and cloud
+// debugging.
 #define COMPACT true
 #define MANUAL_WIFI false
 #define REVERSE_VOLTAGES false
@@ -79,8 +80,8 @@ void setup() {
     pinMode(satPin, INPUT);
     pinMode(briPin, INPUT);
 
-    // Set Power to be max voltage output
     #if COMPACT
+    // Set power pin to be max voltage output
     pinMode(powPin, OUTPUT);
     digitalWrite(powPin, HIGH);
     #endif
